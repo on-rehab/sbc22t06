@@ -9,8 +9,6 @@
 #include "esp_event.h"
 #include "esp_netif.h"
 
-//#include "protocol_examples_common.h"
-
 #include "freertos/FreeRTOS.h"
 #include "freertos/task.h"
 #include "freertos/semphr.h"
@@ -32,7 +30,7 @@
 
 #define FOTORESISTOR1 ADC1_CHANNEL_4 // PIN_G32
 #define FOTORESISTOR2 ADC1_CHANNEL_5 // PIN_G33
-#define placa_solar ADC1_CHANNEL_7 //pin_G35
+#define placa_solar ADC1_CHANNEL_7   //pin_G35
 #define LED 22                       // PIN_G22
 #define UMBRAL_ANALOGICO 3400
 #define Q1_OUTPUT 25
@@ -140,8 +138,6 @@ void app_main(void)
     ESP_ERROR_CHECK(esp_netif_init());
     ESP_ERROR_CHECK(esp_event_loop_create_default());
 
-    //ESP_ERROR_CHECK(example_connect());
-
     esp_mqtt_client_config_t mqtt_cfg = {
         .uri = "mqtt://demo.thingsboard.io",
         .event_handle = mqtt_event_handler,
@@ -151,7 +147,7 @@ void app_main(void)
 
     esp_mqtt_client_handle_t client = esp_mqtt_client_init(&mqtt_cfg);
 
-    //mqtt_app_start(client);
+    mqtt_app_start(client);
 
     gpio_set_direction(LED, GPIO_MODE_DEF_OUTPUT);
 
@@ -162,8 +158,6 @@ void app_main(void)
 
     while (1)
     {
-        // LDR1 --> Lado izqdo.
-        // LDR2 --> Lado dcho.
         ldr_izqdo_val = adc1_get_raw(FOTORESISTOR1);
         ldr_dcho_val = adc1_get_raw(FOTORESISTOR2);
         placa_solar1= adc1_get_raw(placa_solar);
@@ -172,43 +166,31 @@ void app_main(void)
         ESP_LOGI(TAG, "LDR izquierdo: %d", ldr_izqdo_val);
         ESP_LOGI(TAG, "LDR derecho: %d", ldr_dcho_val);
 
-        //  if (ldr_izqdo_val < UMBRAL_ANALOGICO || ldr_dcho_val < UMBRAL_ANALOGICO)
-        //  {
-        //      if (ldr_izqdo_val < ldr_dcho_val)
-        //      {
-        //          // Tambien puede utilizarse un intervalo de confianza: 0.985 del LDR destino
-        //          while (ldr_izqdo_val < ldr_dcho_val * 0.985 || ldr_izqdo_val > ldr_dcho_val * 1.015)
-        //          {
-        //              motor_girar(1);
-        //          }
-        //          ESP_LOGI(TAG, "Girando a la izquierda...");
-        //      }
-        //      else
-        //      {
-        //          while (ldr_dcho_val < ldr_izqdo_val * 0.985 || ldr_dcho_val > ldr_izqdo_val * 1.015)
-        //          {
-        //              motor_girar(0);
-        //          }
-        //          ESP_LOGI(TAG, "Girando a la derecha...");
-        //      }
-        //      // Los LED podrian quitarse.
-        //      //gpio_set_level(LED, 0);
-        //      vTaskDelay(pdMS_TO_TICKS(100));
-
-        //      //gpio_set_level(LED, 1);
-        //      vTaskDelay(pdMS_TO_TICKS(100));
-        //  }
-        //  else
-        //  {
-        //      //gpio_set_level(LED, 0);
-        //      vTaskDelay(pdMS_TO_TICKS(1000));
-        //      //gpio_set_level(LED, 1);
-        //      vTaskDelay(pdMS_TO_TICKS(1000));
-        //  }
-
-        // Se envían los datos a Thingsboard
-        // [ERROR]: no conseguimos que envía varios datos a la vez.
-        //mqtt_telemetry_send(ldr_izqdo_val, ldr_dcho_val, placa_solar1, client, "ldr_izqdo", "ldr_dcho", "placa_movil");
+          if (ldr_izqdo_val < UMBRAL_ANALOGICO || ldr_dcho_val < UMBRAL_ANALOGICO)
+          {
+              if (ldr_izqdo_val < ldr_dcho_val)
+              {
+                  while (ldr_izqdo_val < ldr_dcho_val * 0.985 || ldr_izqdo_val > ldr_dcho_val * 1.015)
+                  {
+                      motor_girar(1);
+                  }
+                  ESP_LOGI(TAG, "Girando a la izquierda...");
+              }
+              else
+              {
+                  while (ldr_dcho_val < ldr_izqdo_val * 0.985 || ldr_dcho_val > ldr_izqdo_val * 1.015)
+                  {
+                      motor_girar(0);
+                  }
+                  ESP_LOGI(TAG, "Girando a la derecha...");
+              }
+              vTaskDelay(pdMS_TO_TICKS(100));
+          }
+          else
+          {
+              vTaskDelay(pdMS_TO_TICKS(1000));
+          }
+        mqtt_telemetry_send(ldr_izqdo_val, ldr_dcho_val, placa_solar1, client, "ldr_izqdo", "ldr_dcho", "placa_movil");
         vTaskDelay(pdMS_TO_TICKS(2000));
     }
 }
